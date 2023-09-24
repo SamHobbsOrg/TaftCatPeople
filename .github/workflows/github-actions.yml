@@ -1,0 +1,36 @@
+﻿name: Droplet Website
+run-name: Deploying website for Taft Cat People
+on: [push]
+
+env:
+  DOTNET_VERSION: '7.0.306' # The .NET SDK version to use
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: |        
+        dotnet build TaftCatPeople.csproj --configuration Release --no-restore
+        dotnet publish TaftCatPeople.csproj -c Release -r linux-x64 --self-contained true
+                     
+    - name: Deploy
+      uses: easingthemes/ssh-deploy@main
+      env:
+          SSH_PRIVATE_KEY: ${{ secrets.DROPLET_KEY_SECRET }}
+          ARGS: "-rlgoDzvc -i"
+          SOURCE: "./bin/Release/net7.0/publish/wwwroot/"
+          REMOTE_HOST: ${{ secrets.DROPLET_HOST_SECRET}}
+          REMOTE_USER: ${{ secrets.DROPLET_USERNAME_SECRET }}
+          TARGET: /var/www/93268.org
